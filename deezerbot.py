@@ -1037,52 +1037,18 @@ application.add_handler(CallbackQueryHandler(elegir_calidad, pattern="^seleccion
 application.add_handler(CallbackQueryHandler(descargar_cancion, pattern="^(con_lrc_flac_|con_lrc_320_|con_lrc_128_|sin_lrc_flac_|sin_lrc_320_|sin_lrc_128_)"))
 application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 
-# 📌 INICIAR BOT - VERSIÓN RAILWAY CORREGIDA
+# 📌 INICIAR BOT - VERSIÓN MÍNIMA PARA RAILWAY
 if __name__ == "__main__":
     print("🤖 Bot de Descargas Deezer MEJORADO iniciado...")
     print("🎵 Modos disponibles: Con LRC + Música y Solo Música (Sin LRC)")
     print("🔍 Búsqueda por: Canción, Artista, Álbum (10 resultados)")
-    print("📱 **Interfaz mejorada**: Solo título y artista en botones")
     
-    import asyncio
-    import threading
-    from flask import Flask
+    # Ejecutar el bot directamente
+    print("🚀 Iniciando bot de Telegram...")
     
-    # Crear aplicación Flask para mantener vivo el proceso
-    app = Flask(__name__)
-
-    @app.route('/')
-    def home():
-        return "🤖 Bot de Descargas Deezer está funcionando correctamente!"
-
-    @app.route('/health')
-    def health():
-        return "✅ Bot saludable"
-
-    # Función para ejecutar el bot de forma asíncrona
-    def run_bot():
-        try:
-            print("🤖 Iniciando bot de Telegram...")
-            
-            # Crear un nuevo event loop para este hilo
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            # Ejecutar el bot
-            loop.run_until_complete(application.run_polling())
-            
-        except Exception as e:
-            print(f"❌ Error en el bot: {e}")
-
-    # Iniciar el bot en un hilo separado
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    print("⏳ Iniciando servidor web...")
-    
-    # Obtener el puerto de Railway
-    port = int(os.environ.get("PORT", 8080))
-    print(f"🌐 Servidor web iniciado en puerto: {port}")
-    
-    # Iniciar Flask en el hilo principal
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+    # Para Railway, necesitamos mantener el proceso vivo
+    # El bot se ejecutará en el hilo principal
+    try:
+        application.run_polling()
+    except Exception as e:
+        print(f"❌ Error en el bot: {e}")
