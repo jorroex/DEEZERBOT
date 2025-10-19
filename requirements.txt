@@ -4,3 +4,4 @@ deezer-downloader
 python-telegram-bot
 nest-asyncio
 requests
+flask==2.3.3
