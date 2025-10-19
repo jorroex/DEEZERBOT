@@ -62,7 +62,7 @@ with open(os.path.join(config_dir, "config.json"), "w") as f:
 nest_asyncio.apply()
 application = ApplicationBuilder().token(TOKEN).build()
 
-# Headers mejorados para Deezer
+# Headers MEJORADOS para Deezer
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
@@ -74,50 +74,107 @@ HEADERS = {
     "Connection": "keep-alive",
     "Sec-Fetch-Dest": "empty",
     "Sec-Fetch-Mode": "cors",
-    "Sec-Fetch-Site": "same-site"
+    "Sec-Fetch-Site": "same-site",
+    "Cache-Control": "no-cache"
 }
 
 # Headers con ARL para endpoints privados
 HEADERS_WITH_ARL = HEADERS.copy()
 HEADERS_WITH_ARL["Cookie"] = f"arl={ARL}"
 
-# 📌 FUNCIONES DE BÚSQUEDA
+# 📌 FUNCIONES DE BÚSQUEDA MEJORADAS
 def buscar_cancion(query, limit=10, index=0):
     try:
-        url = f"https://api.deezer.com/search/track?q={query}&index={index}&limit={limit}"
-        res = requests.get(url, headers=HEADERS, timeout=10)
+        print(f"🔍 [BUSQUEDA] Buscando canción: {query}")
+
+        # Codificar la query para URL
+        query_encoded = requests.utils.quote(query)
+        url = f"https://api.deezer.com/search/track?q={query_encoded}&index={index}&limit={limit}"
+
+        print(f"🔍 [API] URL: {url}")
+
+        res = requests.get(url, headers=HEADERS, timeout=15)
+        print(f"🔍 [API] Status Code: {res.status_code}")
+
         if res.status_code == 200:
-            return res.json().get("data", [])
-        return []
-    except:
+            data = res.json()
+            resultados = data.get("data", [])
+            print(f"🔍 [API] Resultados encontrados: {len(resultados)}")
+
+            # Debug: mostrar primeros resultados
+            for i, resultado in enumerate(resultados[:3]):
+                titulo = resultado.get('title', 'Sin título')
+                artista = resultado.get('artist', {}).get('name', 'Artista desconocido')
+                print(f"🔍 [API] Resultado {i+1}: {titulo} - {artista}")
+
+            return resultados
+        else:
+            print(f"❌ [API] Error en la respuesta: {res.status_code}")
+            return []
+    except Exception as e:
+        print(f"❌ [API] Error en búsqueda de canción: {e}")
         return []
 
 def buscar_artista(query, limit=10, index=0):
     try:
-        url = f"https://api.deezer.com/search/artist?q={query}&index=0&limit=1"
-        res = requests.get(url, headers=HEADERS, timeout=10)
-        artistas = res.json().get("data", [])
-        if not artistas:
-            return []
-        artist_id = artistas[0]["id"]
-        url = f"https://api.deezer.com/artist/{artist_id}/top?limit={limit}"
-        res = requests.get(url, headers=HEADERS, timeout=10)
-        return res.json().get("data", [])
-    except:
+        print(f"🔍 [ARTISTA] Buscando artista: {query}")
+
+        query_encoded = requests.utils.quote(query)
+        url = f"https://api.deezer.com/search/artist?q={query_encoded}&index=0&limit=1"
+
+        res = requests.get(url, headers=HEADERS, timeout=15)
+        print(f"🔍 [ARTISTA] Status Code: {res.status_code}")
+
+        if res.status_code == 200:
+            artistas = res.json().get("data", [])
+            if not artistas:
+                print("❌ [ARTISTA] No se encontró el artista")
+                return []
+
+            artist_id = artistas[0]["id"]
+            print(f"🔍 [ARTISTA] ID encontrado: {artist_id}")
+
+            url = f"https://api.deezer.com/artist/{artist_id}/top?limit={limit}"
+            res = requests.get(url, headers=HEADERS, timeout=15)
+
+            if res.status_code == 200:
+                resultados = res.json().get("data", [])
+                print(f"🔍 [ARTISTA] Canciones encontradas: {len(resultados)}")
+                return resultados
+        return []
+    except Exception as e:
+        print(f"❌ [ARTISTA] Error en búsqueda de artista: {e}")
         return []
 
 def buscar_album(query, limit=10, index=0):
     try:
-        url = f"https://api.deezer.com/search/album?q={query}&index=0&limit=1"
-        res = requests.get(url, headers=HEADERS, timeout=10)
-        albums = res.json().get("data", [])
-        if not albums:
-            return []
-        album_id = albums[0]["id"]
-        url = f"https://api.deezer.com/album/{album_id}/tracks"
-        res = requests.get(url, headers=HEADERS, timeout=10)
-        return res.json().get("data", [])
-    except:
+        print(f"🔍 [ALBUM] Buscando álbum: {query}")
+
+        query_encoded = requests.utils.quote(query)
+        url = f"https://api.deezer.com/search/album?q={query_encoded}&index=0&limit=1"
+
+        res = requests.get(url, headers=HEADERS, timeout=15)
+        print(f"🔍 [ALBUM] Status Code: {res.status_code}")
+
+        if res.status_code == 200:
+            albums = res.json().get("data", [])
+            if not albums:
+                print("❌ [ALBUM] No se encontró el álbum")
+                return []
+
+            album_id = albums[0]["id"]
+            print(f"🔍 [ALBUM] ID encontrado: {album_id}")
+
+            url = f"https://api.deezer.com/album/{album_id}/tracks"
+            res = requests.get(url, headers=HEADERS, timeout=15)
+
+            if res.status_code == 200:
+                resultados = res.json().get("data", [])
+                print(f"🔍 [ALBUM] Canciones encontradas: {len(resultados)}")
+                return resultados
+        return []
+    except Exception as e:
+        print(f"❌ [ALBUM] Error en búsqueda de álbum: {e}")
         return []
 
 # 📌 FUNCIÓN PARA OBTENER INFORMACIÓN DE CANCIÓN
@@ -125,8 +182,11 @@ def obtener_info_cancion(track_id):
     try:
         url = f"https://api.deezer.com/track/{track_id}"
         res = requests.get(url, headers=HEADERS, timeout=10)
-        return res.json()
-    except:
+        if res.status_code == 200:
+            return res.json()
+        return None
+    except Exception as e:
+        print(f"❌ Error obteniendo info de canción: {e}")
         return None
 
 # 📌 SISTEMA MEJORADO DE BÚSQUEDA DE LETRAS DEEZER
@@ -220,87 +280,7 @@ def buscar_letras_deezer_profundo(track_id, track_info):
     except Exception as e:
         print(f"❌ [DEEZER MOBILE] Error endpoint mobile: {e}")
 
-    # MÉTODO 4: Web scraping MEJORADO de página de Deezer
-    try:
-        letras_web = buscar_letras_deezer_web_mejorado(track_id)
-        if letras_web:
-            print("✅ [DEEZER WEB] Letras encontradas vía web scraping mejorado")
-            metodo = "Web Scraping Deezer"
-            return letras_web, metodo
-    except Exception as e:
-        print(f"❌ [DEEZER WEB] Error web scraping: {e}")
-
     return letras, metodo
-
-def buscar_letras_deezer_web_mejorado(track_id):
-    """Scraping MEJORADO de letras desde la página web de Deezer"""
-    try:
-        url = f"https://www.deezer.com/track/{track_id}"
-
-        headers_web = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-            "Accept-Language": "es-ES,es;q=0.8,en;q=0.5",
-            "Accept-Encoding": "gzip, deflate, br",
-            "DNT": "1",
-            "Connection": "keep-alive",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Cache-Control": "max-age=0"
-        }
-
-        response = requests.get(url, headers=headers_web, timeout=15)
-        if response.status_code == 200:
-            html_content = response.text
-
-            # PATRONES MEJORADOS para encontrar letras
-            lyrics_patterns = [
-                # Patrón para letras en formato Chakra UI (nuevo)
-                r'<p data-theme="dark" class="chakra-text css-[a-z0-9]+">([^<]+)</p>',
-                # Patrón para letras en divs con clases específicas
-                r'<div[^>]*class="[^"]*lyrics[^"]*"[^>]*>([\s\S]*?)</div>',
-                # Patrón para datos JSON de letras
-                r'"LYRICS":"(.*?)"',
-                r'"lyrics":"(.*?)"',
-                r'"LYRICS_TEXT":"(.*?)"',
-                # Patrón para spans con letras
-                r'<span[^>]*data-testid="lyrics"[^>]*>([\s\S]*?)</span>',
-                # Patrón genérico para texto de letras
-                r'<div[^>]*data-theme="dark"[^>]*>([\s\S]*?)</div>'
-            ]
-
-            for pattern in lyrics_patterns:
-                matches = re.findall(pattern, html_content, re.IGNORECASE)
-                for match in matches:
-                    if match and len(match.strip()) > 50:
-                        # Limpiar el texto
-                        letras = match.strip()
-                        letras = re.sub(r'<[^>]*>', '', letras)  # Remover HTML tags
-                        letras = re.sub(r'\\n', '\n', letras)    # Convertir saltos de línea
-                        letras = re.sub(r'\\"', '"', letras)     # Convertir comillas
-                        letras = re.sub(r'\\u[0-9a-fA-F]{4}', '', letras)  # Remover Unicode
-                        letras = re.sub(r'\s+', ' ', letras)     # Normalizar espacios
-                        letras = letras.strip()
-
-                        if letras and len(letras) > 50:
-                            print(f"✅ [WEB] Letras encontradas con patrón: {len(letras)} caracteres")
-                            return letras[:4000]  # Limitar tamaño
-
-            # Búsqueda específica para el formato Chakra UI que mencionaste
-            chakra_pattern = r'<p data-theme="dark" class="chakra-text css-[a-z0-9]+">([^<]+)</p>'
-            chakra_matches = re.findall(chakra_pattern, html_content)
-            if chakra_matches:
-                letras_chakra = '\n'.join([match.strip() for match in chakra_matches if match.strip()])
-                if len(letras_chakra) > 50:
-                    print(f"✅ [CHAKRA] Letras encontradas en formato Chakra: {len(letras_chakra)} caracteres")
-                    return letras_chakra[:4000]
-
-    except Exception as e:
-        print(f"❌ Error en scraping web Deezer mejorado: {e}")
-
-    return None
 
 # 📌 SISTEMA AVANZADO DE BÚSQUEDA DE LETRAS (MEJORADO)
 def buscar_letras_avanzado(track_info):
@@ -320,7 +300,7 @@ def buscar_letras_avanzado(track_info):
     letras = None
     metodo = "No encontradas"
 
-    # MÉTODO 5: Genius API
+    # MÉTODO 4: Genius API
     try:
         letras_genius = buscar_genius(artista, titulo)
         if letras_genius:
@@ -330,7 +310,7 @@ def buscar_letras_avanzado(track_info):
     except Exception as e:
         print(f"❌ [LETRAS] Error Genius: {e}")
 
-    # MÉTODO 6: AZLyrics (scraping)
+    # MÉTODO 5: AZLyrics (scraping)
     try:
         letras_az = buscar_azlyrics(artista, titulo)
         if letras_az:
@@ -340,19 +320,9 @@ def buscar_letras_avanzado(track_info):
     except Exception as e:
         print(f"❌ [LETRAS] Error AZLyrics: {e}")
 
-    # MÉTODO 7: Musixmatch (scraping)
-    try:
-        letras_musix = buscar_musixmatch(artista, titulo)
-        if letras_musix:
-            print("✅ [LETRAS] Encontradas vía Musixmatch")
-            metodo = "Musixmatch"
-            return letras_musix, metodo
-    except Exception as e:
-        print(f"❌ [LETRAS] Error Musixmatch: {e}")
-
     return letras, metodo
 
-# 📌 FUNCIONES EXTERNAS PARA LETRAS (se mantienen igual)
+# 📌 FUNCIONES EXTERNAS PARA LETRAS
 def buscar_genius(artista, titulo):
     """Buscar letras en Genius"""
     try:
@@ -418,42 +388,6 @@ def buscar_azlyrics(artista, titulo):
                     return letras[:3000]
     except Exception as e:
         print(f"❌ Error en AZLyrics: {e}")
-
-    return None
-
-def buscar_musixmatch(artista, titulo):
-    """Buscar letras en Musixmatch"""
-    try:
-        query = f"{artista} {titulo}".replace(' ', '%20')
-        search_url = f"https://www.musixmatch.com/search/{query}"
-
-        headers_mx = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-        }
-
-        response = requests.get(search_url, headers=headers_mx, timeout=10)
-        if response.status_code == 200:
-            html_content = response.text
-            link_pattern = r'href="(/lyrics/[^"]*)"'
-            links = re.findall(link_pattern, html_content)
-
-            if links:
-                lyrics_url = f"https://www.musixmatch.com{links[0]}"
-                lyrics_response = requests.get(lyrics_url, headers=headers_mx, timeout=10)
-
-                if lyrics_response.status_code == 200:
-                    lyrics_html = lyrics_response.text
-                    lyrics_pattern = r'<span class="lyrics__content__[^"]*">([^<]*)</span>'
-                    lyrics_matches = re.findall(lyrics_pattern, lyrics_html)
-
-                    if lyrics_matches:
-                        letras = '\n'.join(lyrics_matches).strip()
-                        if letras and len(letras) > 100:
-                            return letras[:3000]
-    except Exception as e:
-        print(f"❌ Error en Musixmatch: {e}")
 
     return None
 
@@ -1063,7 +997,7 @@ async def descargar_cancion(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 elif modo == "con_lrc":
                     print("⚠️ [LRC] No se encontró archivo LRC para enviar")
                     await query.message.reply_text(
-                        f"📝 *Letras no disponibles*\n\nNo se pudieron encontrar letras para *{nombre_cancion}* después de intentar 7 métodos diferentes.",
+                        f"📝 *Letras no disponibles*\n\nNo se pudieron encontrar letras para *{nombre_cancion}* después de intentar varios métodos diferentes.",
                         parse_mode=ParseMode.MARKDOWN
                     )
 
@@ -1107,8 +1041,6 @@ application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, buscar))
 if __name__ == "__main__":
     print("🤖 Bot de Descargas Deezer MEJORADO iniciado...")
     print("🎵 Modos disponibles: Con LRC + Música y Solo Música (Sin LRC)")
-    print("📝 **SISTEMA MEJORADO** de búsqueda de letras con 7 métodos")
-    print("🎯 **Web scraping mejorado** para formato Chakra UI")
     print("🔍 Búsqueda por: Canción, Artista, Álbum (10 resultados)")
     print("📱 **Interfaz mejorada**: Solo título y artista en botones")
 
